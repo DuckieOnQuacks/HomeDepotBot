@@ -1,34 +1,51 @@
 # https://discord.com/api/oauth2/authorize?client_id=860542014214242354&permissions=238221312&scope=bot 
 #add link ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-import asyncio
-from asyncio.tasks import sleep
+
+###Libraries###
+import re
+import os
+import time
+import pickle
 import random
 import discord
-from discord.errors import NotFound
-from discord.ext import commands
+import asyncio
+
 from discord.ext import tasks
-import pickle
 from datetime import datetime
-import re
+from dotenv import load_dotenv
+from asyncio.tasks import sleep
+from discord.ext import commands
+from discord.errors import NotFound
 
-
-#my scripts
-import image_request
-import fact_finder
-import bookfinder
-import comment_search
+###My Scripts###
 import cputemp
+import bookfinder
+import fact_finder
 import music_grabber
+import image_request
+import comment_search
+import music_downloader
+import youtube_song_link
 
-#grab token from binary
-infile = open("api_id",'rb')
-TOKEN = pickle.load(infile)
-infile.close()
+###Enviorment Paths###
+import os
+from pathlib import Path
 
-intents = discord.Intents().all()
-bot = commands.Bot(command_prefix='!',intents=intents)
 
-client = discord.Client()
+ffmpeg_options = {
+    'options': '-vn',
+    "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5"
+}
+
+load_dotenv()
+
+env_path = Path('.')/'.env'
+load_dotenv(dotenv_path=env_path)
+
+TOKEN = os.getenv("TOKEN")
+
+intents = discord.Intents().default()
+client = commands.Bot(command_prefix='$', intents=intents)
 
 @client.event
 async def on_ready():
@@ -36,13 +53,10 @@ async def on_ready():
     print(now,"Bot Initialized")
     fact_message.start()
     game_status.start()
+    purge_files.start()
 
 
 #COMMAND FUNCTIONS
-
-
-
-
 
 @client.event
 async def on_message(message):
@@ -51,148 +65,7 @@ async def on_message(message):
         return
     print(now,"Incoming Message From " + str(message.guild))
 
-
-
-    if message.content.startswith('$hello'):
-        name = str(message.author).split('#', 1)[0]
-        await message.channel.send('Sup  ' + name)
-
-
-    if message.content.startswith('!STOP!'):
-        server = message.guild
-        print("halting voice")
-        try:
-            await server.voice_client.disconnect()
-        except:
-            print("homedepotbot not connected")
-            
-    if message.content.startswith('!TEMP!'):
-        cputemp.gettemp()
-        await message.channel.send("Temp is "+str(cputemp.cpu_temp))
-
-
-
-#VOICE COMMANDS ===========================================================================================
-    if message.content.startswith('give me my tunes'):
-        name = str(message.author).split('#', 1)[0]
-        await message.channel.send(name + " wants to get some tunes")
-        server = message.guild
-        if(name == "Noah Leighton"):
-            final = music_grabber.get_song_list("nleighton11")
-            await message.channel.send("https://"+final)
-        elif(name == "DuckieOnQuack"):
-            final = music_grabber.get_song_list("duckieonquack")
-            await message.channel.send("https://"+final)
-        else:
-            await message.channel.send("This user does not have an account go make one")
-            
-
-    if message.content.startswith('build'):
-        name = str(message.author).split('#', 1)[0]
-        await message.channel.send(name + " would like to build some shit")
-        server = message.guild
-        if not message.author.voice:
-            await message.channel.send(name + " is not connected to a voice channel")
-            return
-        else:
-            channel = message.author.voice.channel
-        try:
-            await channel.connect()
-        except:
-            print("channel error")
-            await message.channel.send("Already in a voice channel")
-        server.voice_client.play(discord.FFmpegPCMAudio(executable="ffmpeg", source="depot.mp3"))
-        await asyncio.sleep(20)
-        if server.voice_client.is_connected():
-            await server.voice_client.disconnect()
-        else:
-            return
-
-    if message.content.startswith('im feelin chill'):
-        name = str(message.author).split('#', 1)[0]
-        await message.channel.send(name + " sit back and relax")
-        server = message.guild
-        if not message.author.voice:
-            await message.channel.send(name + " is not connected to a voice channel")
-            return
-        else:
-            channel = message.author.voice.channel
-        try:
-            await channel.connect()
-        except:
-            print("channel error")
-            await message.channel.send("Already in a voice channel")
-        server.voice_client.play(discord.FFmpegPCMAudio(executable="ffmpeg", source="homedepotlofi.mp3"))
-        await asyncio.sleep(83)
-        if server.voice_client.is_connected():
-            await server.voice_client.disconnect()
-        else:
-            return
-        
-    if message.content.startswith('im feelin extra chill'):
-        name = str(message.author).split('#', 1)[0]
-        await message.channel.send(name + " sit back, relax and enjoy")
-        server = message.guild
-        if not message.author.voice:
-            await message.channel.send(name + " is not connected to a voice channel")
-            return
-        else:
-            channel = message.author.voice.channel
-        try:
-            await channel.connect()
-        except:
-            print("channel error")
-            await message.channel.send("Already in a voice channel")
-        server.voice_client.play(discord.FFmpegPCMAudio(executable="ffmpeg", source="lofi.mp3"))
-        await asyncio.sleep(960)
-        if server.voice_client.is_connected():
-            await server.voice_client.disconnect()
-        else:
-            return
-
-    if message.content.startswith('yoda'):
-        name = str(message.author).split('#', 1)[0]
-        server = message.guild
-        listmp3 = ["yodabust.mp3", "stinka.mp3"]
-        if not message.author.voice:
-            await message.channel.send(name + " is not connected to a voice channel")
-            return
-        else:
-            channel = message.author.voice.channel
-        try:
-            await channel.connect()
-        except:
-            print("channel error")
-            await message.channel.send("Already in a voice channel")
-        server.voice_client.play(discord.FFmpegPCMAudio(executable="ffmpeg", source= listmp3[random.randint(0,len(listmp3)-1)]))
-        await asyncio.sleep(18)
-        if server.voice_client.is_connected():
-            await server.voice_client.disconnect()
-        else:
-            return
-#VOICE COMMANDS ===========================================================================================
-
-
-
-
-
     
-    if message.content.startswith('who is kris'):
-        await message.channel.send("Kris is a dirty Man whore")
-        await asyncio.sleep(5)
-        await message.channel.send("You're welcome")
-
-    if ('penis') in message.content or ('PENIS') in message.content:
-        name = str(message.author).split('#', 1)[0]
-        await message.channel.send(name + " is gay")
-
-    if message.content.startswith('wake up mommy'):
-        await message.channel.send("I PISSED THE BED")
-
-    if message.content.startswith('dad walks in'):
-        await message.channel.send(":eyes:")
-        await message.channel.send("https://c.tenor.com/zUsPiUP3pQQAAAAd/shrek-dancing.gif")
-
     if message.content.startswith('useless bot'):
         name = str(message.author).split('#', 1)[0]
         await message.channel.send("HomeDepot bot recommends you sleep with your eyes open.")
@@ -203,33 +76,254 @@ async def on_message(message):
         await message.author.dm_channel.send(f'IM GOING TO FUCKING MURDER YOU {name}')
         print(now,"Sent dm")
 
-    if message.content.startswith('where do i go') or message.content.startswith('what lane') or message.content.startswith('what lane?') or message.content.startswith('league'):
+    if message.content.startswith('what kind of day is it'):
+        num = random.randint(0,1)
+        if(num == 1):
+            await message.channel.send("Today will be a bones day")
+        else:
+            await message.channel.send("Today is a no bones day")
+
+    if message.content.startswith('hello'):
         name = str(message.author).split('#', 1)[0]
+        await message.channel.send('Sup  ' + name)
+            
+    await client.process_commands(message)
+    
+##################################### TUNES ###########################################################
+#This function, with the use of a last.fm account, will give you youtube links to songs that fit your
+#music genres based off of spotify.
+#######################################################################################################
+@client.command()
+async def tunes(cxt, search):
+        server = cxt.guild
+        name = str(cxt.author).split('#', 1)[0]
+        if search == "":
+            music_grabber.usersearch(name)
+            if found:
+                await cxt.invoke(client.get_command('play'), search = music_grabber.get_song_list(music_grabber.username))
+                await cxt.channel.send("https://"+music_grabber.get_song_list(music_grabber.username))
+            else:
+                await cxt.channel.send("Repeat the command and add your last.fm username")
+        else:
+           music_grabber.useradd(name, search)
+           
+        await cxt.channel.send(name + " wants to get some tunes")
+
+
+                            
+
+    
+##################################### STOP ###########################################################
+#This function stops whatever ear rape is being played
+######################################################################################################
+@client.command()
+async def stop(cxt):
+        server = cxt.guild
+        print("halting voice")
+        try:
+            try:
+                await server.voice_client.disconnect()
+            except AttributeError:
+                print("Not in a voice channel")
+        except:
+            print("Error leaving voice channel")
+
+        
+##################################### TEMPRATURE #####################################################
+#Simple temprature command that tells you the conditions of home depots house. (Raspberry pi 3B+)
+######################################################################################################                
+@client.command()
+async def TEMP(cxt):
+        await cputemp.gettemp()
+        await cxt.channel.send("Temp is "+str(cputemp.cpu_temp))
+
+        
+##################################### PLAY ###########################################################
+#Function that plays whatever your heart desires at the push of a button. (as long as its on youtube)
+######################################################################################################
+@client.command()
+async def play(cxt, * , search):
+        server = cxt.guild
+        name = cxt.author
+        if not cxt.author.voice:
+            await cxt.channel.send(name + " is not connected to a voice channel")
+            return
+        else:
+            channel = cxt.author.voice.channel
+        try:
+            await channel.connect()
+            if "https" not in search:
+                youtube_link = youtube_song_link.get_song_url(search)
+                if("channel" in youtube_link):
+                    await cxt.channel.send("Fuck you, you got a channel link")
+                else:   
+                    await music_downloader.download(youtube_link)
+                    await cxt.channel.send("__***Playing: "+music_downloader.audioname+"***__")
+                    
+                    print(music_downloader.audiofile)
+                    print(os.getcwd()+"/tmp/" + music_downloader.audiofile)
+            else:
+                await music_downloader.download(search)
+                await cxt.channel.send("__***Playing: "+music_downloader.audioname+"***__")
+                print(music_downloader.audiofile)
+                print(os.getcwd()+"/tmp/" + music_downloader.audiofile)
+
+            
+            server.voice_client.play(discord.FFmpegPCMAudio(executable="ffmpeg", source=os.getcwd()+"/tmp/" + music_downloader.audiofile))
+            await asyncio.sleep(music_downloader.audiolength + 5)
+            if server.voice_client.is_connected():
+                await server.voice_client.disconnect()
+            else:
+                return
+            asyncio.sleep(round(music_downloader.audiolength+(music_downloader.audiolength*.3)))
+            os.remove(os.getcwd()+"/tmp/" + music_downloader.audiofile)
+            print("REMOVED FILE " + os.getcwd()+"/tmp/" + music_downloader.audiofile)
+            await cxt.channel.send("Already in a voice channel")
+
+
+##################################### HOME DEPOT BUILD #######################################
+#Function that ear rapes you with the wonderful song of the poeple.
+############################################################################################# 
+@client.command()
+async def build(cxt):
+        name = str(cxt.author).split('#', 1)[0]
+        await cxt.channel.send(name + " would like to build some shit")
+        server = cxt.guild
+        if not cxt.author.voice:
+            await cxt.channel.send(name + " is not connected to a voice channel")
+            return
+        else:
+            channel = cxt.author.voice.channel
+        try:
+            await channel.connect()
+        except:
+            print("channel error")
+            await cxt.channel.send("Already in a voice channel")
+        server.voice_client.play(discord.FFmpegPCMAudio(executable="ffmpeg", source="depot.mp3"))
+        await asyncio.sleep(20)
+        if server.voice_client.is_connected():
+            await server.voice_client.disconnect()
+        else:
+            return
+
+
+##################################### HOME DEPOT CHILL #######################################
+#Function that chills you out colder than home depots layaway freezers
+#############################################################################################   
+@client.command()      
+async def chill(cxt):
+        name = str(cxt.author).split('#', 1)[0]
+        await cxt.channel.send(name + " sit back, relax and enjoy")
+        server = cxt.guild
+        if not cxt.author.voice:
+            await cxt.channel.send(name + " is not connected to a voice channel")
+            return
+        else:
+            channel = cxt.author.voice.channel
+        try:
+            await channel.connect()
+        except:
+            print("channel error")
+            await cxt.channel.send("Already in a voice channel")
+        server.voice_client.play(discord.FFmpegPCMAudio(executable="ffmpeg", source="homedepotlofi.mp3"))
+        await asyncio.sleep(82)
+        if server.voice_client.is_connected():
+            await server.voice_client.disconnect()
+        else:
+            return
+
+
+##################################### YODAS TEACHINGS #######################################
+#Function that voices the teachings of the green lightsaber weilding master yoda.
+#############################################################################################
+@client.command()
+async def yoda(cxt):
+        name = str(cxt.author).split('#', 1)[0]
+        server = cxt.guild
+        listmp3 = ["yodabust.mp3", "stinka.mp3"]
+        if not cxt.author.voice:
+            await cxt.channel.send(name + " is not connected to a voice channel")
+            return
+        else:
+            channel = cxt.author.voice.channel
+        try:
+            await channel.connect()
+        except:
+            print("channel error")
+            await cxt.channel.send("Already in a voice channel")
+        server.voice_client.play(discord.FFmpegPCMAudio(executable="ffmpeg", source= listmp3[random.randint(0,len(listmp3)-1)]))
+        await asyncio.sleep(18)
+        if server.voice_client.is_connected():
+            await server.voice_client.disconnect()
+        else:
+            return
+
+
+##################################### LEAGUE LANE ###########################################
+#Function that when promted, gives you a random league of legends lane to play in.
+#############################################################################################        
+@client.command()
+async def league(cxt):
+        name = str(cxt.author).split('#', 1)[0]
         lanelist = ["TOP","MIDDLE","BOTTOM", "SUPPORT","JUNGLE"]
         yourlane = lanelist[random.randint(0,4)]
-        await message.channel.send(name + " should go " + yourlane.lower())
+        await cxt.channel.send(name + " should go " + yourlane.lower())
+        
 
-    if message.content.startswith('search books'):
+##################################### BOOK SEARCH ###########################################
+#Function that when promted, gives you a random book from and array of books.
+#############################################################################################
+@client.command()
+async def search(cxt, books = None):
+    if books == "books":
         bookfinder.booksearch()
         commentlist = ["A great read" , "My personal favorite", "A modern day shakespear" , "This story is life-changing", "A god given masterpiece","kill me"]
         bookimage = bookfinder.booklink
-        await message.channel.send(bookimage)
-        await message.channel.send(commentlist[random.randint(0,5)])
+        await cxt.channel.send(bookimage)
+        await cxt.channel.send(commentlist[random.randint(0,len(commentlist) - 1)])
+    else:
+        print("Invalid Book Entry")
+        
 
-    if message.content.startswith('bless me'):
-        comment_search.givecomment()
-        await message.channel.send(comment_search.retcomment)
-        print(now,"printing a comment")
+##################################### BLESS ME ###########################################
+#Function that when promted, gives you a random comment from and array of pornhub links.
+##########################################################################################   
+@client.command()
+async def bless(ctx, me = None):
+    if me == "me":
+        await comment_search.givecomment()
+        await ctx.channel.send(comment_search.retcomment)
+        print("printing a comment")
+    else:
+        print("Invalid bless command")
 
-    if message.content.startswith('gimme '):
-        search= message.content.replace("gimme ", "")
+    
+##################################### GIMME ################################################
+#Function that depending on what the user enters after the .gimme command will find a random
+#image of that item and post it in the chat.
+############################################################################################  
+@client.command()
+async def gimme(ctx, search = None):
         image_request.imagesearch(search)
         image = image_request.retlink
-        await message.channel.send(image)
-        await message.channel.send("__***" + image_request.actualsearch.upper() + "***__")
+        await ctx.channel.send(image)
+        await ctx.channel.send("__***" + image_request.actualsearch.upper() + "***__")
+        
+        
+##################################### CLEAR #################################
+#Function to clear out a certain amount of messages that is given by the user
+#Default value for number of messages deleted is 5 - 1 because of the clear
+#command itself if not otherwise specified
+############################################################################# 
+@client.command()
+async def clear(ctx, amount = 5):
+        try:
+            await ctx.channel.purge(limit = amount)
+        except:
+           await ctx.channel.send("Invalid Amount") 
+    
 
-
-#DM ON MEMBER JOIN
+#DM ON MEMBER JOIN===================================================================================================================
 @client.event
 async def on_member_join(member):
     await member.create_dm()
@@ -237,11 +331,11 @@ async def on_member_join(member):
     await member.dm_channel.send(f'Hi {member.name}, HomeDepot bot welcomes you, It is too late to turn back')
     await member.dm_channel.send(  f'' + image_request.retlink)
 
-#LOOPS
+#LOOPS ==============================================================================================================================
 @tasks.loop(seconds=60)
 async def fact_message():
     now = str(datetime.now().time()).split(".", 1)[0]
-    waittime = random.randint(3600,20000)
+    waittime = random.randint(86400,172800)
     print(now,"fact_message waiting " + str(round((waittime)/60)) + " minutes to send")
     await asyncio.sleep(waittime)
     fact_finder.givefact()
@@ -250,9 +344,22 @@ async def fact_message():
     print(now,"sending fact")
     await client.get_channel(729895104101351457).send(fact)
 
+@tasks.loop(seconds=600)
+async def purge_files():
+    now = str(datetime.now().time()).split(".", 1)[0] 
+    print(now,"Purging....")
+    now = time.time()
 
+    for filename in os.listdir(os.getcwd()+"/tmp"):
 
-# STATUS LIST
+        if os.path.getmtime(os.path.join(os.getcwd()+"/tmp", filename)) < now - 3600:
+            if os.path.isfile(os.path.join(os.getcwd()+"/tmp", filename)):
+                print("Removed: "+filename)
+                os.remove(os.path.join(os.getcwd()+"/tmp", filename))
+        elif os.path.getmtime(os.path.join(os.getcwd()+"/tmp", filename)) >= now - 3600:
+            print("Ignoring: "+ filename)
+
+# STATUS LIST=========================================================================================================================
 status_list = ["I love Man-Milk.","God is cruel.","Kris is gay.","mmm Man-Milk delicious"]
 @tasks.loop(seconds=60)
 async def game_status():
