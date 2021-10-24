@@ -1,7 +1,8 @@
-import requests
-from bs4 import BeautifulSoup
-from random import randint
 import re
+import requests
+from random import randint
+from bs4 import BeautifulSoup
+
 
 def get_song_list(username):
   url = "https://www.last.fm/player/station/user/" + username + "/recommended"
