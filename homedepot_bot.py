@@ -18,7 +18,7 @@ from discord.ext import commands
 from discord.errors import NotFound
 
 ###My Scripts###
-#import cputemp
+import cputemp
 import bookfinder
 import fact_finder
 import music_grabber
