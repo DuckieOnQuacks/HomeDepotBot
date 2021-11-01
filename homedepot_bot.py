@@ -26,6 +26,7 @@ import image_request
 import comment_search
 import music_downloader
 import youtube_song_link
+import make_command
 
 ###Enviorment Paths###
 import os
@@ -94,23 +95,53 @@ async def on_message(message):
 #music genres based off of spotify.
 #######################################################################################################
 @client.command()
-async def tunes(cxt, search):
+async def tunes(cxt, search=None):
         server = cxt.guild
         name = str(cxt.author).split('#', 1)[0]
-        if search == "":
+        print(name)
+        if search == None:
             music_grabber.usersearch(name)
+            
             if music_grabber.found:
-                await cxt.invoke(client.get_command('play'), search = music_grabber.get_song_list(music_grabber.username))
-                await cxt.channel.send("https://"+music_grabber.get_song_list(music_grabber.username))
+                username = music_grabber.username
+                print(username)
+                await cxt.invoke(client.get_command('play'), search = music_grabber.get_song_list(username))
+                await cxt.channel.send("https://"+music_grabber.get_song_list(username))
             else:
                 await cxt.channel.send("Repeat the command and add your last.fm username")
         else:
            music_grabber.useradd(name, search)
+           await cxt.channel.send("Adding " + name + " " + search)
            
-        await cxt.channel.send(name + " wants to get some tunes")
 
 
-                            
+
+##################################### Make ###########################################################
+#Grabs recepies off all receipies website
+#Prints ingredients then directions if any
+#######################################################################################################
+@client.command()
+async def make(cxt, *, search = None):
+    if search == None:
+        await cxt.channel.send("You must type something after $make")
+    else:
+        await make_command.getmakelink(search)
+        link = make_command.link
+        await make_command.getimage(link)
+        image = make_command.image
+        returnedobject = "".join(link.split("/")[5]).replace("-"," ")
+        await make_command.getingredients(link)
+        try:
+            await make_command.getdirections(link)
+            directions = make_command.directions
+        except:
+            directions= "___***SOME IDIOT DIDNT PUT THE DIRECTIONS, THEY ARE PROBABLY IN THE DISCRIPTION***___"
+        ingredients = make_command.ingredients
+        await cxt.channel.send("___***"+returnedobject+"***___")
+        await cxt.channel.send(image)
+        await cxt.channel.send(ingredients)
+        await cxt.channel.send(directions)
+                     
 
     
 ##################################### STOP ###########################################################
@@ -152,38 +183,56 @@ async def play(cxt, * , search):
             channel = cxt.author.voice.channel
         try:
             await channel.connect()
+
+            if "https" not in search:
+                youtube_link = youtube_song_link.get_song_url(search)
+                if("channel" in youtube_link):
+                    await cxt.channel.send("Fuck you, you got a channel link")
+                else:   
+                    await music_downloader.download(youtube_link)
+                    await cxt.channel.send("__***Playing: "+music_downloader.audioname+"***__")
+                    
+                    print(music_downloader.audiofile)
+                    print(os.getcwd()+"/tmp/" + music_downloader.audiofile)
+            else:
+                await music_downloader.download(search)
+                await cxt.channel.send("__***Playing: "+music_downloader.audioname+"***__")
+                print(music_downloader.audiofile)
+                print(os.getcwd()+"/tmp/" + music_downloader.audiofile)
+
+                
+            server.voice_client.play(discord.FFmpegPCMAudio(executable="ffmpeg", source=os.getcwd()+"/tmp/" + music_downloader.audiofile))
+            await asyncio.sleep(music_downloader.audiolength + 5)
+            if server.voice_client.is_connected():
+                await server.voice_client.disconnect()
+            else:
+                return
+            await asyncio.sleep(round(music_downloader.audiolength+(music_downloader.audiolength*.3)))
+            os.remove(os.getcwd()+"/tmp/" + music_downloader.audiofile)
+            print("REMOVED FILE " + os.getcwd()+"/tmp/" + music_downloader.audiofile)
         except:
             print("CHANNEL ERROR")
             await cxt.message.channel.send("Already in a voice channel")
-        if "https" not in search:
-            youtube_link = youtube_song_link.get_song_url(search)
-            if("channel" in youtube_link):
-                await cxt.channel.send("Fuck you, you got a channel link")
-            else:   
-                await music_downloader.download(youtube_link)
-                await cxt.channel.send("__***Playing: "+music_downloader.audioname+"***__")
-                
-                print(music_downloader.audiofile)
-                print(os.getcwd()+"/tmp/" + music_downloader.audiofile)
+            return
+            
+
+#####################################       QUEUE      #######################################
+#queue
+##############################################################################################
+
+@client.command()
+async def queue(cxt, * , search):
+    server = cxt.guild
+    index = 1
+    while True:
+        if server.voice_client.is_playing():
+            return
         else:
-            await music_downloader.download(search)
-            await cxt.channel.send("__***Playing: "+music_downloader.audioname+"***__")
-            print(music_downloader.audiofile)
-            print(os.getcwd()+"/tmp/" + music_downloader.audiofile)
+            await cxt.invoke(client.get_command('play'), search=search)
+            break
+
 
             
-        server.voice_client.play(discord.FFmpegPCMAudio(executable="ffmpeg", source=os.getcwd()+"/tmp/" + music_downloader.audiofile))
-        await asyncio.sleep(music_downloader.audiolength + 5)
-        if server.voice_client.is_connected():
-            await server.voice_client.disconnect()
-        else:
-            return
-        asyncio.sleep(round(music_downloader.audiolength+(music_downloader.audiolength*.3)))
-        os.remove(os.getcwd()+"/tmp/" + music_downloader.audiofile)
-        print("REMOVED FILE " + os.getcwd()+"/tmp/" + music_downloader.audiofile)
-        await cxt.channel.send("Already in a voice channel")
-
-
 ##################################### HOME DEPOT BUILD #######################################
 #Function that ear rapes you with the wonderful song of the poeple.
 ############################################################################################# 
@@ -243,7 +292,7 @@ async def chill(cxt):
 async def yoda(cxt):
         name = str(cxt.author).split('#', 1)[0]
         server = cxt.guild
-        listmp3 = ["yodabust.mp3", "stinka.mp3"]
+        listmp3 = ["yodabust.mp3", "stinka.mp3", "yodacrush.mp3"]
         if not cxt.author.voice:
             await cxt.channel.send(name + " is not connected to a voice channel")
             return
@@ -322,6 +371,7 @@ async def gimme(ctx, search = None):
 async def clear(ctx, amount = 5):
         try:
             await ctx.channel.purge(limit = amount)
+            await ctx.channel.send(amount + " messages deleted")
         except:
            await ctx.channel.send("Invalid Amount") 
     
@@ -363,7 +413,7 @@ async def purge_files():
             print("Ignoring: "+ filename)
 
 # STATUS LIST=========================================================================================================================
-status_list = ["I love Man-Milk.","God is cruel.","Kris is gay.","mmm Man-Milk delicious"]
+status_list = ["I love Man-Milk.","God is cruel.","Kris is gay.","mmm Man-Milk delicious","Please Help Me..."]
 @tasks.loop(seconds=60)
 async def game_status():
         index = 0
@@ -373,6 +423,5 @@ async def game_status():
             index = index + 1
 
 client.run(TOKEN)
-
 
 
